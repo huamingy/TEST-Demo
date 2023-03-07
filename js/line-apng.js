@@ -3,7 +3,7 @@ import { FBXLoader } from '../jsm/loaders/FBXLoader.js'
 import { GUI } from '../jsm/libs/dat.gui.module.js'
 import { GLTFLoader } from '../jsm/loaders/GLTFLoader.js'
 import { renderer, scene, camera } from './scene.js'
-var a
+
 var parseAPNG = window['apng-js'].default
 // 播放器
 var player = null
