@@ -1,8 +1,8 @@
-import { EffectComposer } from '../jsm/postprocessing/EffectComposer.js'
-import { RenderPass } from '../jsm/postprocessing/RenderPass.js'
-import { MaskPass, ClearMaskPass } from '../jsm/postprocessing/MaskPass.js'
-import { UnrealBloomPass } from '../jsm/postprocessing/UnrealBloomPass.js'
-import { ShaderPass } from '../jsm/postprocessing/ShaderPass.js'
+import { EffectComposer } from '../three/jsm/postprocessing/EffectComposer.js'
+import { RenderPass } from '../three/jsm/postprocessing/RenderPass.js'
+import { MaskPass, ClearMaskPass } from '../three/jsm/postprocessing/MaskPass.js'
+import { UnrealBloomPass } from '../three/jsm/postprocessing/UnrealBloomPass.js'
+import { ShaderPass } from '../three/jsm/postprocessing/ShaderPass.js'
 
 import * as THREE from '../build/three.module.js'
 // composer_fn.js

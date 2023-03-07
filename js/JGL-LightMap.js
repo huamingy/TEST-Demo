@@ -1,10 +1,10 @@
 import * as THREE from '../build/three.module.js'
 
-import { OrbitControls } from '../jsm/controls/OrbitControls.js'
-import { GLTFLoader } from '../jsm/loaders/GLTFLoader.js'
-import { FBXLoader } from '../jsm/loaders/FBXLoader.js'
-import { RGBELoader } from '../jsm/loaders/RGBELoader.js'
-import { RoughnessMipmapper } from '../jsm/utils/RoughnessMipmapper.js'
+import { OrbitControls } from '../three/jsm/controls/OrbitControls.js'
+import { GLTFLoader } from '../three/jsm/loaders/GLTFLoader.js'
+import { FBXLoader } from '../three/jsm/loaders/FBXLoader.js'
+import { RGBELoader } from '../three/jsm/loaders/RGBELoader.js'
+import { RoughnessMipmapper } from '../three/jsm/utils/RoughnessMipmapper.js'
 
 let camera, scene, renderer
 

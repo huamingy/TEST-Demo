@@ -1,7 +1,7 @@
 import * as THREE from '../build/three.module.js'
-import { FBXLoader } from '../jsm/loaders/FBXLoader.js'
-import { GUI } from '../jsm/libs/dat.gui.module.js'
-import { GLTFLoader } from '../jsm/loaders/GLTFLoader.js'
+import { FBXLoader } from '../three/jsm/loaders/FBXLoader.js'
+import { GUI } from '../three/jsm/libs/dat.gui.module.js'
+import { GLTFLoader } from '../three/jsm/loaders/GLTFLoader.js'
 import { renderer, scene, camera } from './scene.js'
 
 var parseAPNG = window['apng-js'].default

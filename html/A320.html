@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head> </head>
-  <script src="../jsm/tween.umd.js"></script>
+  <script src="../three/jsm/tween.umd.js"></script>
 
   <body>
     <div id="container"></div>
@@ -68,20 +68,20 @@
 
     <script type="module">
       import * as THREE from '../build/three.module.js'
-      import { FBXLoader } from '../jsm/loaders/FBXLoader.js'
-      import { EffectComposer } from '../jsm/postprocessing/EffectComposer.js'
-      import { RenderPass } from '../jsm/postprocessing/RenderPass.js'
-      import { FilmPass } from '../jsm/postprocessing/FilmPass.js'
-      import { BloomPass } from '../jsm/postprocessing/BloomPass.js'
-      import { ShaderPass } from '../jsm/postprocessing/ShaderPass.js'
-      import { OrbitControls } from '../jsm/controls/OrbitControls.js'
+      import { FBXLoader } from '../three/jsm/loaders/FBXLoader.js'
+      import { EffectComposer } from '../three/jsm/postprocessing/EffectComposer.js'
+      import { RenderPass } from '../three/jsm/postprocessing/RenderPass.js'
+      import { FilmPass } from '../three/jsm/postprocessing/FilmPass.js'
+      import { BloomPass } from '../three/jsm/postprocessing/BloomPass.js'
+      import { ShaderPass } from '../three/jsm/postprocessing/ShaderPass.js'
+      import { OrbitControls } from '../three/jsm/controls/OrbitControls.js'
 
-      import { GUI } from '../jsm/libs/dat.gui.module.js'
-      import { GLTFLoader } from '../jsm/loaders/GLTFLoader.js'
+      import { GUI } from '../three/jsm/libs/dat.gui.module.js'
+      import { GLTFLoader } from '../three/jsm/loaders/GLTFLoader.js'
 
-      import { CopyShader } from '../jsm/shaders/CopyShader.js'
-      import { OutlinePass } from '../jsm/postprocessing/OutlinePass.js'
-      import { FXAAShader } from '../jsm/shaders/FXAAShader.js'
+      import { CopyShader } from '../three/jsm/shaders/CopyShader.js'
+      import { OutlinePass } from '../three/jsm/postprocessing/OutlinePass.js'
+      import { FXAAShader } from '../three/jsm/shaders/FXAAShader.js'
       import {
         createComposer,
         createShaderPass,
