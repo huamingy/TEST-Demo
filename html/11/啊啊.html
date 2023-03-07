@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title></title>
+
+    <script type="text/javascript" src="js/jquery.js"></script>
+    <style>
+      .AHU_outerClass {
+        font-family: '等线';
+        color: aliceblue;
+        width: 700px;
+        height: 500px;
+        background-color: rgba(5, 5, 5, 0.5);
+      }
+      .miandeptClass {
+        position: relative;
+        top: 200px;
+        left: 100px;
+        width: 50px;
+        height: 70px;
+        background-color: #0000ff;
+      }
+      .dataclass {
+        /* padding-top: 1px; */
+        font-size: 25px;
+        float: right;
+        position: relative;
+        left: -370px;
+        top: 30px;
+        width: 240px;
+        height: 150px;
+        /* background-color: rgba(9, 32, 54, 0.5); */
+        /* padding: 10px; */
+        margin-right: 10px;
+      }
+      .dataclass_value {
+        padding-top: 15px;
+      }
+      /* .AHU_dataclass_value{
+	    color: #FFFF00;
+	  } */
+
+      .imgclass {
+        opacity: 0.5;
+        display: block;
+        width: 250px;
+        height: 330px;
+        position: relative;
+        top: -440px;
+        left: 320px;
+      }
+
+      .AHU_name {
+        padding-left: 10px;
+        font-size: 40px;
+        line-height: 60px;
+        font-weight: 800;
+        width: 100%;
+        border-bottom: 1px solid #a0a0ac;
+        color: aqua;
+      }
+      .AHU_PL {
+        font-size: 30px;
+        position: absolute;
+        left: 600px;
+        top: 120px;
+      }
+      .AHU_CMH {
+        font-size: 30px;
+        position: absolute;
+        left: 535px;
+        top: 95px;
+      }
+
+      .AHU_SD {
+        font-size: 30px;
+        position: absolute;
+        left: 590px;
+        top: 290px;
+      }
+      .AHU_WD {
+        font-size: 30px;
+        position: absolute;
+        left: 580px;
+        top: 250px;
+      }
+      .AHU_SFJ {
+        position: absolute;
+        left: 580px;
+        top: 400px;
+        font-size: 30px;
+      }
+      .AHU_STAUS_imgclass {
+        width: 180px;
+        height: 60px;
+        position: absolute;
+        top: 300px;
+        left: 80px;
+      }
+      .AHU_wjzT {
+        font-size: 26px;
+        position: absolute;
+        top: 315px;
+        left: 100px;
+        font-family: '等线';
+      }
+      .AHU_module_imgclass {
+        position: absolute;
+        left: 80px;
+        top: 370px;
+        width: 300px;
+        height: 60px;
+      }
+      .AHU_WJMS {
+        font-family: '等线';
+        font-size: 26px;
+        position: absolute;
+        top: 385px;
+        left: 100px;
+      }
+      .AHU_Time {
+        position: relative;
+        left: 410px;
+        top: 20px;
+        height: 40px;
+        font-size: 20px;
+        line-height: 40px;
+      }
+      /* .AHU_value{
+	    color: #33FF33;
+	  } */
+      .AHU_unit {
+        font-size: 20px;
+      }
+      .AHU_satus {
+        font-size: 30px;
+      }
+      .AHU_loginout {
+        position: absolute;
+        top: 6px;
+        left: 630px;
+        width: 50px;
+        height: 50px;
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      var a = 'ModbusBms2f2'
+      var modbusBmsvalue
+      $.ajax({
+        type: 'get',
+        url: 'http://221.6.30.202:15007/prod-api/modbus/api/getNewestData?modbusType',
+        data: modbusBmsvalue,
+        dataType: 'json',
+        async: false, //默认为true 异步
+        success: function (data) {
+          modbusBmsvalue = data.data
+        },
+      })
+
+      for (const i in modbusBmsvalue) {
+        if ((i == a) & (a == 'ModbusBms2f1' || a == 'ModbusBms2f2')) {
+          $('body').append(
+            `<div class="AHU_outerClass"> 
+							<div   id="ktname" class="AHU_name">AHU 
+				      </div>
+							<div class="dataclass">
+								<div class="dataclass_value">加温器开度：<a class = "AHU_dataclass_value"> ` +
+              (modbusBmsvalue[i].humidifierValveOpen == undefined
+                ? '无'
+                : modbusBmsvalue[i].humidifierValveOpen) +
+              `
+				      </a>%</div>
+								<div class="dataclass_value">加热阀开度：<a class = "AHU_dataclass_value">` +
+              (modbusBmsvalue[i].heatingValveOpen == undefined
+                ? '无'
+                : modbusBmsvalue[i].heatingValveOpen) +
+              `
+				      </a>%</div>
+								<div class="dataclass_value">三通阀开度：<a class = "AHU_dataclass_value">` +
+              modbusBmsvalue[i].threeValveOpen +
+              `
+				      </a>%</div>
+						</div>
+				      <div class="AHU_SD">
+				      <a class="AHU_unit">` +
+              modbusBmsvalue[i].airSupplyHumidity +
+              `%</a></div>
+							<div class="AHU_WD">
+				      <a class="AHU_unit">` +
+              modbusBmsvalue[i].airSupplyTemp +
+              `℃</a></div>
+							<div class="AHU_PL">
+				      <a class="AHU_unit">` +
+              modbusBmsvalue[i].blowerHz +
+              `HZ</a></div>
+							<div class="AHU_CMH">
+				      <a class="AHU_unit">` +
+              modbusBmsvalue[i].airSupplyAmount +
+              `CMH</a></div>
+							<img class="imgclass" src="./img/Fj.png"/>
+							<a class="AHU_SFJ" >送风机</a><br />
+				      <img class="AHU_STAUS_imgclass" src="./img/黄.png"/>
+							<div  class="AHU_wjzT">风机状态:
+							<a class = "AHU_value">` +
+              (modbusBmsvalue[i].blowerRun == 1 ? '运行中' : '关') +
+              `
+				      </a></div>
+				
+				      <img class="AHU_module_imgclass" src="./img/AHU2蓝.png"/>
+							<div  class="AHU_WJMS">风机模式:<a class="AHU_satus">` +
+              (modbusBmsvalue[i].coolingStatus == 0
+                ? modbusBmsvalue[i].heatingStatus == 1
+                  ? '加热'
+                  : '加热关'
+                : '制冷') +
+              (modbusBmsvalue[i].dehumidifiedStatus == 0 ? '除湿关' : '除湿') +
+              `
+				      </a></div>
+						`
+          )
+        }
+      }
+    </script>
+  </body>
+</html>

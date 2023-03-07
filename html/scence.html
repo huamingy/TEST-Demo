@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <style>
+    body {
+      margin: 0;
+    }
+  </style>
+  <body>
+    <div id="container"></div>
+    <script id="fragmentShader" type="x-shader/x-fragment">
+
+      uniform float time;
+
+      uniform float fogDensity;
+      uniform vec3 fogColor;
+
+      uniform sampler2D texture1;
+      uniform sampler2D texture2;
+
+      varying vec2 vUv;
+
+      void main( void ) {
+
+      	vec2 position = - 1.0 + 2.0 * vUv;
+
+      	vec4 noise = texture2D( texture1, vUv );
+      	vec2 T1 = vUv + vec2( 1.5, - 1.5 ) * time * 0.02;
+      	vec2 T2 = vUv + vec2( - 0.5, 2.0 ) * time * 0.01;
+
+      	T1.x += noise.x * 2.0;
+      	T1.y += noise.y * 2.0;
+      	T2.x -= noise.y * 0.2;
+      	T2.y += noise.z * 0.2;
+
+      	float p = texture2D( texture1, T1 * 2.0 ).a;
+
+      	vec4 color = texture2D( texture2, T2 * 2.0 );
+      	vec4 temp = color * ( vec4( p, p, p, p ) * 2.0 ) + ( color * color - 0.1 );
+
+        if( temp.r > 1.0 ) { temp.bg += clamp( temp.r - 2.0, 0.0, 100.0 ); }
+      	if( temp.g > 1.0 ) { temp.rb += temp.g - 1.0; }
+        if( temp.b > 1.0 ) { temp.rg += temp.b - 1.0; }
+
+      	gl_FragColor = temp;
+
+      	float depth = gl_FragCoord.z / gl_FragCoord.w;
+      	const float LOG2 = 1.442695;
+      	float fogFactor = exp2( - fogDensity * fogDensity * depth * depth * LOG2 );
+      	fogFactor = 1.7 - clamp( fogFactor, 0.0, 1.0 );
+
+      	gl_FragColor = mix( gl_FragColor, vec4( fogColor, gl_FragColor.w ), fogFactor );
+
+      }
+    </script>
+
+    <script id="vertexShader" type="x-shader/x-vertex">
+
+      uniform vec2 uvScale;
+      varying vec2 vUv;
+
+      void main()
+      {
+
+      	vUv = uvScale * uv;
+      	vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+      	gl_Position = projectionMatrix * mvPosition;
+
+      }
+    </script>
+  </body>
+
+  <script type="module">
+    import * as THREE from '../build/three.module.js'
+    import { FBXLoader } from '../jsm/loaders/FBXLoader.js'
+    import { EffectComposer } from '../jsm/postprocessing/EffectComposer.js'
+    import { RenderPass } from '../jsm/postprocessing/RenderPass.js'
+    import { FilmPass } from '../jsm/postprocessing/FilmPass.js'
+    import { BloomPass } from '../jsm/postprocessing/BloomPass.js'
+    import { ShaderPass } from '../jsm/postprocessing/ShaderPass.js'
+    import { OrbitControls } from '../jsm/controls/OrbitControls.js'
+
+    import { GUI } from '../jsm/libs/dat.gui.module.js'
+    import { GLTFLoader } from '../jsm/loaders/GLTFLoader.js'
+    import { TWEEN } from '../jsm/libs/tween.module.min.js'
+
+    import { CopyShader } from '../jsm/shaders/CopyShader.js'
+    import { OutlinePass } from '../jsm/postprocessing/OutlinePass.js'
+    // import { FXAAShader } from '../jsGLTFLoaderm/shaders/FXAAShader.js'
+
+    var scene = new THREE.Scene()
+
+    var scene2 = new THREE.Scene()
+    var clock = new THREE.Clock()
+    /**
+     * 光源设置
+     */
+    //点光源
+    var point = new THREE.PointLight(0xffffff)
+    point.position.set(0, 600, 0) //点光源位置
+    scene.add(point) //点光源添加到场景中
+    //环境光
+    var ambient = new THREE.AmbientLight(0xffffff)
+    scene.add(ambient)
+
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0xffffff)
+    hemiLight.position.set(0, 800, 0)
+    scene.add(hemiLight)
+    var Direction = new THREE.DirectionalLight(0xffffff)
+    Direction.position.set(600, 500, 0)
+    scene.add(Direction)
+
+    /**
+     * 相机设置
+     */
+    var width = window.innerWidth //窗口宽度
+    var height = window.innerHeight //窗口高度
+    var k = width / height //窗口宽高比
+    //创建相机对象
+    var camera = new THREE.PerspectiveCamera(45, k, 1, 5000)
+    camera.position.set(0, 0, -10) //设置相机位置
+    camera.lookAt(scene.position) //设置相机方向(指向的场景对象)
+    /**
+     * 创建渲染器对象
+     */
+    var mixer, AnimationAction
+    var load = new GLTFLoader()
+    load.load('../models/Loft_CS.glb', function (obj) {
+      console.log('vvvvvvvvv', obj)
+      scene.add(obj.scene)
+
+      // for (var i = 0; i <= obj.animations.length; i++) {
+
+      var clip = THREE.AnimationClip.findByName(obj.animations, 'down.001')
+
+      mixer = new THREE.AnimationMixer(obj.scene)
+      AnimationAction = mixer.clipAction(obj.animations[4])
+      AnimationAction.timeScale = 2
+      // AnimationAction.setLoop(1, 2)
+      AnimationAction.clampWhenFinished = true
+      // AnimationAction.play()
+      // }
+      scene.getObjectByName('A2_4_Loft').children.forEach(function (i, index) {
+        console.log('index: ', i)
+
+        index <= 2 && i.isMesh && moveup(i, 1)
+      })
+
+      moveup(scene.getObjectByName('A2_4_Loft_Orange'), 36)
+      moveup(scene.getObjectByName('A2_4_Loft_Yellow'), 36)
+      moveup(scene.getObjectByName('A2_4_Loft_Green'), 36)
+
+      animate()
+    })
+
+    function moveup(mesh, num) {
+      var pos = mesh.position
+      var tween = new TWEEN.Tween(pos)
+
+      var a = Math.floor(Math.random() * 11)
+      tween.to(
+        {
+          y: pos.y + a * num,
+        },
+        a * 500
+      )
+
+      tween.onUpdate(function () {
+        mesh.position.y = pos.y
+      })
+      tween.start()
+    }
+
+    var renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      // alpha: true,
+    })
+    renderer.toneMapping = THREE.ACESFilmicToneMapping
+    // renderer.toneMappingExposure = 0.5
+    renderer.physicallyCorrectLights = true
+    // renderer.setClearColor(0x003366, 1)
+    renderer.localClippingEnabled = true //局部剖切
+    renderer.setPixelRatio(window.devicePixelRatio)
+    renderer.outputEncoding = THREE.sRGBEncoding
+    renderer.setSize(width, height) //设置渲染区域尺寸
+    renderer.autoClear = false
+    document.body.append(renderer.domElement)
+
+    function animate() {
+      requestAnimationFrame(animate)
+
+      render()
+    }
+
+    function render() {
+      TWEEN.update()
+      mixer.update(clock.getDelta())
+      renderer.render(scene, camera)
+    }
+    var control = new OrbitControls(camera, renderer.domElement)
+
+    window.onresize = function () {
+      camera.aspect = window.innerWidth / window.innerHeight
+      camera.updateProjectionMatrix()
+
+      renderer.setSize(window.innerWidth, window.innerHeight)
+    }
+  </script>
+</html>

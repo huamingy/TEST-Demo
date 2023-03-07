@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>three.js webgl - postprocessing - unreal bloom selective</title>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"
+    />
+    <link type="text/css" rel="stylesheet" href="main.css" />
+  </head>
+  <body>
+    <div id="info">
+      <a href="https://threejs.org" target="_blank" rel="noopener">three.js</a>
+      Click on a sphere to toggle bloom<br />By
+      <a href="http://github.com/Temdog007" target="_blank" rel="noopener"
+        >Temdog007</a
+      >
+    </div>
+
+    <script type="x-shader/x-vertex" id="vertexshader">
+
+      varying vec2 vUv;
+
+      void main() {
+
+      	vUv = uv;
+
+      	gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+
+      }
+    </script>
+
+    <script type="x-shader/x-fragment" id="fragmentshader">
+
+      uniform sampler2D baseTexture;
+      uniform sampler2D bloomTexture;
+
+      varying vec2 vUv;
+
+      void main() {
+
+      	gl_FragColor = ( texture2D( baseTexture, vUv ) + vec4( 1.0 ) * texture2D( bloomTexture, vUv ) );
+
+      }
+    </script>
+
+    <script id="fragmentShader" type="x-shader/x-fragment">
+
+      uniform float time;
+
+      uniform float fogDensity;
+      uniform vec3 fogColor;
+
+      uniform sampler2D texture1;
+      uniform sampler2D texture2;
+
+      varying vec2 vUv;
+
+      void main( void ) {
+
+      	vec2 position = - 1.0 + 2.0 * vUv;
+
+      	vec4 noise = texture2D( texture1, vUv );
+      	vec2 T1 = vUv + vec2( 1.5, - 1.5 ) * time * 0.02;
+      	vec2 T2 = vUv + vec2( - 0.5, 2.0 ) * time * 0.01;
+
+      	T1.x += noise.x * 2.0;
+      	T1.y += noise.y * 2.0;
+      	T2.x -= noise.y * 0.2;
+      	T2.y += noise.z * 0.2;
+
+      	float p = texture2D( texture1, T1 * 2.0 ).a;
+
+      	vec4 color = texture2D( texture2, T2 * 2.0 );
+      	vec4 temp = color * ( vec4( p, p, p, p ) * 2.0 ) + ( color * color - 0.1 );
+
+        if( temp.r > 1.0 ) { temp.bg += clamp( temp.r - 2.0, 0.0, 100.0 ); }
+      	if( temp.g > 1.0 ) { temp.rb += temp.g - 1.0; }
+        if( temp.b > 1.0 ) { temp.rg += temp.b - 1.0; }
+
+      	gl_FragColor = temp;
+
+      	float depth = gl_FragCoord.z / gl_FragCoord.w;
+      	const float LOG2 = 1.442695;
+      	float fogFactor = exp2( - fogDensity * fogDensity * depth * depth * LOG2 );
+      	fogFactor = 1.7 - clamp( fogFactor, 0.0, 1.0 );
+
+      	gl_FragColor = mix( gl_FragColor, vec4( fogColor, gl_FragColor.w ), fogFactor );
+
+      }
+    </script>
+
+    <script id="vertexShader" type="x-shader/x-vertex">
+
+      uniform vec2 uvScale;
+      varying vec2 vUv;
+
+      void main()
+      {
+
+      	vUv = uvScale * uv;
+      	vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+      	gl_Position = projectionMatrix * mvPosition;
+
+      }
+    </script>
+
+    <!-- Import maps polyfill -->
+    <!-- Remove this when import maps will be widely supported -->
+    <script
+      async
+      src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"
+    ></script>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "../build/three.module.js"
+        }
+      }
+    </script>
+
+    <script type="module">
+      import * as THREE from 'three'
+
+      import { FBXLoader } from '../jsm/loaders/FBXLoader.js'
+      import { EffectComposer } from '../jsm/postprocessing/EffectComposer.js'
+      import { RenderPass } from '../jsm/postprocessing/RenderPass.js'
+      import { FilmPass } from '../jsm/postprocessing/FilmPass.js'
+      import { BloomPass } from '../jsm/postprocessing/BloomPass.js'
+      import { UnrealBloomPass } from '../jsm/postprocessing/UnrealBloomPass.js'
+
+      import { ShaderPass } from '../jsm/postprocessing/ShaderPass.js'
+      import { OrbitControls } from '../jsm/controls/OrbitControls.js'
+
+      import { GUI } from '../jsm/libs/dat.gui.module.js'
+      import { GLTFLoader } from '../jsm/loaders/GLTFLoader.js'
+
+      import { CopyShader } from '../jsm/shaders/CopyShader.js'
+      import { OutlinePass } from '../jsm/postprocessing/OutlinePass.js'
+      import { FXAAShader } from '../jsm/shaders/FXAAShader.js'
+
+      const ENTIRE_SCENE = 0,
+        BLOOM_SCENE = 1
+
+      const bloomLayer = new THREE.Layers()
+      bloomLayer.set(BLOOM_SCENE)
+
+      const params = {
+        exposure: 1,
+        bloomStrength: 5,
+        bloomThreshold: 0,
+        bloomRadius: 0,
+        scene: 'Scene with Glow',
+      }
+
+      const darkMaterial = new THREE.MeshBasicMaterial({ color: 'black' })
+      const materials = {}
+
+      var clock = new THREE.Clock()
+
+      const textureLoader = new THREE.TextureLoader()
+
+      var uniforms = {
+        // fogDensity: { value: 0.01 },
+        fogColor: { value: new THREE.Vector3(0, 0, 0) },
+        time: { value: 1000 },
+        uvScale: { value: new THREE.Vector2(3.0, 1.0) },
+        texture1: { value: textureLoader.load('../img/cloud.png') },
+        texture2: {
+          // value: textureLoader.load("textures/carbon/Carbon_Normal.png"),
+          value: textureLoader.load('../img/lavatile.jpg'),
+        },
+      }
+      // uniforms['texture1'].value.repeat.x = 8
+      uniforms['texture1'].value.wrapS = uniforms['texture1'].value.wrapT =
+        THREE.RepeatWraping
+
+      uniforms['texture2'].value.wrapS = uniforms['texture2'].value.wrapT =
+        THREE.RepeatWraping
+
+      // const size = 0.65
+
+      const material = new THREE.ShaderMaterial({
+        uniforms: uniforms,
+        vertexShader: document.getElementById('vertexShader').textContent,
+        fragmentShader: document.getElementById('fragmentShader').textContent,
+      })
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true })
+      renderer.setPixelRatio(window.devicePixelRatio)
+      renderer.setSize(window.innerWidth, window.innerHeight)
+      renderer.toneMapping = THREE.ReinhardToneMapping
+      document.body.appendChild(renderer.domElement)
+
+      const scene = new THREE.Scene()
+
+      // const dirLight = new THREE.DirectionalLight(0xffffff, 2000)
+      // dirLight.position.set(300, 500, 100)
+      // scene.add(dirLight)
+
+      // const point2 = new THREE.PointLight(0xffffff, 2) //点光源
+      // point2.position.set(0, 654, 0) //点光源位置
+      // scene.add(point2)
+      // var LightHelper2 = new THREE.PointLightHelper(point2, 50000, 0xff0000)
+      // scene.add(LightHelper2)
+
+      const camera = new THREE.PerspectiveCamera(
+        40,
+        window.innerWidth / window.innerHeight,
+        1,
+        200000
+      )
+      camera.position.set(0, 5000, 20)
+      camera.lookAt(0, 0, 0)
+
+      const controls = new OrbitControls(camera, renderer.domElement)
+      // controls.maxPolarAngle = Math.PI * 0.5
+      // controls.minDistance = 1
+      // controls.maxDistance = 100
+      // controls.addEventListener('change', render)
+
+      // scene.add(new THREE.AmbientLight(0x404040))
+
+      const renderScene = new RenderPass(scene, camera)
+      const effectFilm = new FilmPass(0.65, 0.8, 3, false)
+      const bloomPass = new UnrealBloomPass(
+        new THREE.Vector2(window.innerWidth, window.innerHeight),
+        1.5,
+        0.4,
+        0.85
+      )
+      bloomPass.threshold = params.bloomThreshold
+      bloomPass.strength = params.bloomStrength
+      bloomPass.radius = params.bloomRadius
+
+      const bloomComposer = new EffectComposer(renderer)
+      bloomComposer.renderToScreen = false
+      bloomComposer.addPass(effectFilm)
+      bloomComposer.addPass(renderScene)
+      bloomComposer.addPass(bloomPass)
+
+      const finalPass = new ShaderPass(
+        new THREE.ShaderMaterial({
+          uniforms: {
+            baseTexture: { value: null },
+            bloomTexture: { value: bloomComposer.renderTarget2.texture },
+          },
+          vertexShader: document.getElementById('vertexshader').textContent,
+          fragmentShader: document.getElementById('fragmentshader').textContent,
+          defines: {},
+        }),
+        'baseTexture'
+      )
+      finalPass.needsSwap = true
+
+      const finalComposer = new EffectComposer(renderer)
+      finalComposer.addPass(renderScene)
+      finalComposer.addPass(finalPass)
+
+      const raycaster = new THREE.Raycaster()
+
+      const mouse = new THREE.Vector2()
+
+      // window.addEventListener('pointerdown', onPointerDown)
+
+      const gui = new GUI()
+
+      gui
+        .add(params, 'scene', ['Scene with Glow', 'Glow only', 'Scene only'])
+        .onChange(function (value) {
+          switch (value) {
+            case 'Scene with Glow':
+              bloomComposer.renderToScreen = false
+              break
+            case 'Glow only':
+              bloomComposer.renderToScreen = true
+              break
+            case 'Scene only':
+              // nothing to do
+              break
+          }
+
+          render()
+        })
+
+      const folder = gui.addFolder('Bloom Parameters')
+
+      folder.add(params, 'exposure', 0.1, 2).onChange(function (value) {
+        renderer.toneMappingExposure = Math.pow(value, 4.0)
+        render()
+      })
+
+      folder.add(params, 'bloomThreshold', 0.0, 1.0).onChange(function (value) {
+        bloomPass.threshold = Number(value)
+        render()
+      })
+
+      folder.add(params, 'bloomStrength', 0.0, 10.0).onChange(function (value) {
+        bloomPass.strength = Number(value)
+        render()
+      })
+
+      folder
+        .add(params, 'bloomRadius', 0.0, 1.0)
+        .step(0.01)
+        .onChange(function (value) {
+          bloomPass.radius = Number(value)
+          render()
+        })
+
+      // setupScene()
+
+      // function onPointerDown(event) {
+      //   mouse.x = (event.clientX / window.innerWidth) * 2 - 1
+      //   mouse.y = -(event.clientY / window.innerHeight) * 2 + 1
+
+      //   raycaster.setFromCamera(mouse, camera)
+      //   const intersects = raycaster.intersectObjects(scene.children, false)
+      //   if (intersects.length > 0) {
+      //     const object = intersects[0].object
+      //     object.layers.toggle(BLOOM_SCENE)
+      //     render()
+      //   }
+      // }
+
+      window.onresize = function () {
+        const width = window.innerWidth
+        const height = window.innerHeight
+
+        camera.aspect = width / height
+        camera.updateProjectionMatrix()
+
+        renderer.setSize(width, height)
+
+        bloomComposer.setSize(width, height)
+        finalComposer.setSize(width, height)
+
+        render()
+      }
+
+      // function setupScene() {
+      //   scene.traverse(disposeMaterial)
+      //   scene.children.length = 0
+
+      //   const geometry = new THREE.IcosahedronGeometry(1, 15)
+
+      //   for (let i = 0; i < 50; i++) {
+      //     const color = new THREE.Color()
+      //     color.setHSL(Math.random(), 0.7, Math.random() * 0.2 + 0.05)
+
+      //     const material = new THREE.MeshBasicMaterial({ color: color })
+      //     const sphere = new THREE.Mesh(geometry, material)
+      //     sphere.position.x = Math.random() * 10 - 5
+      //     sphere.position.y = Math.random() * 10 - 5
+      //     sphere.position.z = Math.random() * 10 - 5
+      //     sphere.position.normalize().multiplyScalar(Math.random() * 4.0 + 2.0)
+      //     sphere.scale.setScalar(Math.random() * Math.random() + 0.5)
+      //     scene.add(sphere)
+
+      //     if (Math.random() < 0.25) sphere.layers.enable(BLOOM_SCENE)
+      //   }
+
+      //   render()
+      // }
+      var dropdown = { 楼层: '全景' }
+      //选项
+      var states = [
+        '1层',
+        '2层',
+        '3层',
+        '4层',
+        '5层',
+        '6层',
+        '7层',
+        '8层',
+        '9层',
+        '10层',
+        '11层',
+        '全景',
+      ]
+      // 添加
+      var clipCtrl = gui.add(dropdown, '楼层').options(states)
+      // 设置点击事件
+      clipCtrl.onChange((floor) => {
+        var PlaneArr
+        if (floor == '1层') {
+          PlaneArr = [new THREE.Plane(new THREE.Vector3(0, -1, 0), 43)]
+        } else if (floor == '2层') {
+          PlaneArr = [new THREE.Plane(new THREE.Vector3(0, -1, 0), 43 * 2 - 7)]
+        } else if (floor == '3层') {
+          PlaneArr = [new THREE.Plane(new THREE.Vector3(0, -1, 0), 43 * 3 - 14)]
+        } else if (floor == '4层') {
+          PlaneArr = [new THREE.Plane(new THREE.Vector3(0, -1, 0), 43 * 4 - 21)]
+        } else if (floor == '5层') {
+          PlaneArr = [new THREE.Plane(new THREE.Vector3(0, -1, 0), 43 * 5 - 28)]
+        } else if (floor == '6层') {
+          PlaneArr = [new THREE.Plane(new THREE.Vector3(0, -1, 0), 43 * 6 - 35)]
+        } else if (floor == '7层') {
+          PlaneArr = [new THREE.Plane(new THREE.Vector3(0, -1, 0), 43 * 7 - 42)]
+        } else if (floor == '8层') {
+          PlaneArr = [new THREE.Plane(new THREE.Vector3(0, -1, 0), 43 * 8 - 49)]
+        } else if (floor == '9层') {
+          PlaneArr = [new THREE.Plane(new THREE.Vector3(0, -1, 0), 43 * 9 - 56)]
+        } else if (floor == '10层') {
+          PlaneArr = [
+            new THREE.Plane(new THREE.Vector3(0, -1, 0), 43 * 10 - 63),
+          ]
+        } else if (floor == '11层') {
+          PlaneArr = [
+            new THREE.Plane(new THREE.Vector3(0, -1, 0), 43 * 11 - 70),
+          ]
+        } else {
+          PlaneArr = [new THREE.Plane(new THREE.Vector3(0, -1, 0), 1000)]
+        }
+
+        renderer.clippingPlanes = PlaneArr
+
+        scene.getObjectByName('A2_4_Building_Opacity').traverse(function (obj) {
+          if (obj.type == 'Mesh') {
+            obj.material.clippingPlanes = PlaneArr
+          }
+        })
+
+        console.log(scene.getObjectByName('A2_4_Equipment'))
+      })
+
+      var loader = new FBXLoader()
+
+      loader.load(
+        '../models/Opacity/A2_4_Building_Opacity/A2_4_Buiding_Opacity.FBX',
+        function (fbx) {
+          // fbx.position.set(15, 0, 0)
+          // fbx.position.set(-400, -200, -800)
+          // fbx.scale.set(100, 100, 100)
+          scene.add(fbx)
+
+          fbx.traverse(function (mesh) {
+            if (mesh.type == 'Mesh' && mesh.name.search('Liquid') >= 0) {
+              mesh.material = material
+              mesh.layers.enable(1)
+            } else if (
+              mesh.type == 'Mesh'
+              // &&
+              // (mesh.name.slice(-2) == 'MA' ||
+              //   mesh.name.slice(-2) == 'SA' ||
+              //   mesh.name.slice(-2) == 'RA')
+            ) {
+              mesh.material = new THREE.MeshPhongMaterial({
+                visibility: false,
+                opacity: 0,
+                transparent: true,
+                depthWrite: false,
+                side: THREE.DoubleSide,
+              })
+            }
+          })
+          console.log('fbx: ', fbx)
+
+          // movetexterue(fbx)
+        }
+      )
+      loader.load(
+        '../models/JiGuangLou_Opacity_Pipe/JiGuangLou_Opacity_Light.FBX',
+        function (object) {
+          object.scale.set(0.1, 0.1, 0.1)
+
+          object.traverse(function (mesh) {
+            if (mesh.type == 'Mesh') {
+              mesh.layers.enable(BLOOM_SCENE)
+
+              if (mesh.name.search('_LIQUID') >= 0) {
+                mesh.material = material
+              } else if (mesh.name.slice(-4) == 'PIPE') {
+                mesh.material
+
+                mesh.material = new THREE.MeshBasicMaterial({
+                  // emissive: 0x888888,
+                  opacity: 0.1,
+                  transparent: true,
+                  depthWrite: false,
+                  side: THREE.DoubleSide,
+                })
+              }
+            }
+          })
+
+          scene.add(object)
+          console.log('object: ', object)
+        }
+      )
+      loader.load(
+        '../models/JiGuangLou_Opacity/JiGuangLou_Opacity.FBX',
+        function (object) {
+          console.log('打印对象', object)
+          object.scale.set(0.1, 0.1, 0.1)
+          // const action = mixer.clipAction( object.animations[ 0 ] );
+          // action.play();
+          // object.scale.set(30, 30, 30)
+          object.traverse(function (child) {
+            if (child.isMesh) {
+              child.castShadow = true
+              child.receiveShadow = true
+            }
+          })
+
+          scene.add(object)
+        }
+      )
+      function disposeMaterial(obj) {
+        if (obj.material) {
+          obj.material.dispose()
+        }
+      }
+
+      setInterval(function () {
+        if (1 == 1) render()
+      })
+
+      function render() {
+        const delta = 5 * clock.getDelta()
+
+        uniforms['time'].value += 2 * delta
+        switch (params.scene) {
+          case 'Scene only':
+            renderer.render(scene, camera)
+            break
+          case 'Glow only':
+            renderBloom(false)
+            break
+          case 'Scene with Glow':
+          default:
+            // render scene with bloom
+            renderBloom(true)
+
+            // render the entire scene, then render bloom scene on top
+            finalComposer.render()
+            break
+        }
+      }
+      render()
+      function renderBloom(mask) {
+        if (mask === true) {
+          scene.traverse(darkenNonBloomed)
+          bloomComposer.render()
+          scene.traverse(restoreMaterial)
+        } else {
+          camera.layers.set(BLOOM_SCENE)
+          bloomComposer.render()
+          camera.layers.set(ENTIRE_SCENE)
+        }
+      }
+
+      function darkenNonBloomed(obj) {
+        if (obj.isMesh && bloomLayer.test(obj.layers) === false) {
+          materials[obj.uuid] = obj.material
+          obj.material = darkMaterial
+        }
+      }
+
+      function restoreMaterial(obj) {
+        if (materials[obj.uuid]) {
+          obj.material = materials[obj.uuid]
+          delete materials[obj.uuid]
+        }
+      }
+    </script>
+  </body>
+</html>
