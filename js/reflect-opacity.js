@@ -1,6 +1,6 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.119.1/build/three.module.js'
 
-import { OrbitControls } from '../jsm/controls/OrbitControls.js'
+import { OrbitControls } from '../three/jsm/controls/OrbitControls.js'
 
 //
 
