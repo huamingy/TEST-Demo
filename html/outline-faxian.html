@@ -53,21 +53,16 @@
 
         // 场景
         scene = new THREE.Scene();
-
         // 添加环境光
         scene.add(new THREE.AmbientLight(0x222222));
-
         // 添加方向光
         const light = new THREE.DirectionalLight(0xffffff);
         light.position.set(1, 1, 1);
         scene.add(light);
-
         // 窗口尺寸变化监听
         window.addEventListener('resize', onWindowResize);
-
         stats = new Stats();
         document.body.appendChild(stats.dom);
-
         controls = new OrbitControls(camera, renderer.domElement);
 
         // 添加物体到场景中
