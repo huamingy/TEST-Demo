@@ -1,3 +1,5 @@
+<!-- @format -->
+
 <!DOCTYPE html>
 <html>
   <head> </head>
@@ -67,45 +69,35 @@
     </script>
 
     <script type="module">
-      import * as THREE from '../build/three.module.js'
-      import { FBXLoader } from '../three/jsm/loaders/FBXLoader.js'
-      import { EffectComposer } from '../three/jsm/postprocessing/EffectComposer.js'
-      import { RenderPass } from '../three/jsm/postprocessing/RenderPass.js'
-      import { FilmPass } from '../three/jsm/postprocessing/FilmPass.js'
-      import { BloomPass } from '../three/jsm/postprocessing/BloomPass.js'
-      import { ShaderPass } from '../three/jsm/postprocessing/ShaderPass.js'
-      import { OrbitControls } from '../three/jsm/controls/OrbitControls.js'
+      import * as THREE from '../build/three.module.js';
+      import {FBXLoader} from '../three/jsm/loaders/FBXLoader.js';
+      import {EffectComposer} from '../three/jsm/postprocessing/EffectComposer.js';
+      import {RenderPass} from '../three/jsm/postprocessing/RenderPass.js';
+      import {FilmPass} from '../three/jsm/postprocessing/FilmPass.js';
+      import {BloomPass} from '../three/jsm/postprocessing/BloomPass.js';
+      import {ShaderPass} from '../three/jsm/postprocessing/ShaderPass.js';
+      import {OrbitControls} from '../three/jsm/controls/OrbitControls.js';
 
-      import { GUI } from '../three/jsm/libs/dat.gui.module.js'
-      import { GLTFLoader } from '../three/jsm/loaders/GLTFLoader.js'
+      import {GUI} from '../three/jsm/libs/dat.gui.module.js';
+      import {GLTFLoader} from '../three/jsm/loaders/GLTFLoader.js';
 
-      import { CopyShader } from '../three/jsm/shaders/CopyShader.js'
-      import { OutlinePass } from '../three/jsm/postprocessing/OutlinePass.js'
-      import { FXAAShader } from '../three/jsm/shaders/FXAAShader.js'
-      import {
-        createComposer,
-        createShaderPass,
-        createUnrealBloomPass,
-        createFxaaPass,
-      } from '../js/commposer.js'
+      import {CopyShader} from '../three/jsm/shaders/CopyShader.js';
+      import {OutlinePass} from '../three/jsm/postprocessing/OutlinePass.js';
+      import {FXAAShader} from '../three/jsm/shaders/FXAAShader.js';
+      import {createComposer, createShaderPass, createUnrealBloomPass, createFxaaPass} from '../js/commposer.js';
 
-      var granaryArr = []
+      var granaryArr = [];
 
-      const scene = new THREE.Scene()
+      const scene = new THREE.Scene();
 
-      const camera = new THREE.PerspectiveCamera(
-        75,
-        window.innerWidth / window.innerHeight,
-        0.1,
-        10000
-      )
+      const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
       // camera.position.set(-20, 40, 90) // 设置相机的初始位置
-      camera.position.set(-300, 610, 360) // 设置相机的初始位置
+      camera.position.set(-300, 610, 360); // 设置相机的初始位置
 
-      var Textureloader = new THREE.TextureLoader()
-      var map = Textureloader.load('../models/plane/A320/Wireframe.jpeg')
+      var Textureloader = new THREE.TextureLoader();
+      var map = Textureloader.load('../models/plane/A320/Wireframe.jpeg');
 
-      var loader = new FBXLoader()
+      var loader = new FBXLoader();
       // loader.load('../models/Pipe_CS/Pipe_CS2022-7-25.FBX', function (fbx) {
       loader.load('../models/plane/A320/A320.FBX', function (fbx) {
         fbx.traverse(function (mesh) {
@@ -115,37 +107,36 @@
               opacity: 0.5,
               wireframe: true,
               map: map,
-            })
+            });
           }
-        })
+        });
         // fbx.position.set(-600, -200, -900)
         // fbx.scale.set(100, 100, 100)
-        scene.add(fbx)
-
-        console.log('fbx: ', fbx)
-      })
+        scene.add(fbx);
+        console.log('fbx: ', fbx);
+      });
 
       // 当前相机所在点位置
 
-      const renderer = new THREE.WebGLRenderer({ antialias: true }) // alpha：背景透明，antialias：抗锯齿
-      renderer.setSize(window.innerWidth, window.innerHeight)
-      document.body.appendChild(renderer.domElement) // 加入body中，也可以加入任意元素里
+      const renderer = new THREE.WebGLRenderer({antialias: true}); // alpha：背景透明，antialias：抗锯齿
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement); // 加入body中，也可以加入任意元素里
 
-      const ambientLight = new THREE.AmbientLight(0xffffff) // 自然光，每个几何体的每个面都有光
-      const pointLight = new THREE.PointLight(0xffffff, 1) // 点光源
-      pointLight.position.set(0, 100, 0) // 调整点光源位置
-      scene.add(ambientLight)
-      scene.add(pointLight)
+      const ambientLight = new THREE.AmbientLight(0xffffff); // 自然光，每个几何体的每个面都有光
+      const pointLight = new THREE.PointLight(0xffffff, 1); // 点光源
+      pointLight.position.set(0, 100, 0); // 调整点光源位置
+      scene.add(ambientLight);
+      scene.add(pointLight);
 
       // controls.addEventListener('change', function () {}) // 添加事件
-      var controls = new OrbitControls(camera, renderer.domElement)
+      var controls = new OrbitControls(camera, renderer.domElement);
 
-      let textureLig3 = new THREE.TextureLoader().load('./assets/3.png')
-      let mesh3
-      textureLig3.wrapS = textureLig3.wrapT = THREE.RepeatWrapping //每个都重复
-      textureLig3.repeat.set(1, 1)
-      textureLig3.needsUpdate = true
-      let geometry3 = new THREE.CylinderGeometry(100, 100, 200, 64)
+      let textureLig3 = new THREE.TextureLoader().load('./assets/3.png');
+      let mesh3;
+      textureLig3.wrapS = textureLig3.wrapT = THREE.RepeatWrapping; //每个都重复
+      textureLig3.repeat.set(1, 1);
+      textureLig3.needsUpdate = true;
+      let geometry3 = new THREE.CylinderGeometry(100, 100, 200, 64);
       let materials3 = [
         new THREE.MeshBasicMaterial({
           map: textureLig3,
@@ -162,36 +153,36 @@
           opacity: 0,
           side: THREE.DoubleSide,
         }),
-      ]
-      mesh3 = new THREE.Mesh(geometry3, materials3)
-      mesh3.position.set(-100, 20, 20)
-      scene.add(mesh3)
-      let s = 0
-      let p = 1
+      ];
+      mesh3 = new THREE.Mesh(geometry3, materials3);
+      mesh3.position.set(-100, 20, 20);
+      // scene.add(mesh3);
+      let s = 0;
+      let p = 1;
       //动画
 
       function animate(time) {
-        s += 0.01
-        p -= 0.005
-        if (s > 2) {
-          s = 0
-          p = 1
-        }
-        mesh3.scale.set(1 + s, 1, 1 + s)
-        mesh3.material[0].opacity = p
+        // s += 0.01
+        // p -= 0.005
+        // if (s > 2) {
+        //   s = 0
+        //   p = 1
+        // }
+        // mesh3.scale.set(1 + s, 1, 1 + s)
+        // mesh3.material[0].opacity = p
         // TWEEN.update()
         // stats.update(); // 初始化stats后，需要在这里执行update方法才能实现fps实时监控
-        renderer.render(scene, camera) // 最后需要将场景渲染出来，没有这句将什么都显示不了
-        requestAnimationFrame(animate) // 这里利用浏览器API——requestAnimationFrame，每帧都进行渲染，执行renderer.render(...)方法
+        renderer.render(scene, camera); // 最后需要将场景渲染出来，没有这句将什么都显示不了
+        requestAnimationFrame(animate); // 这里利用浏览器API——requestAnimationFrame，每帧都进行渲染，执行renderer.render(...)方法
       }
-      animate()
+      animate();
 
       window.onresize = function () {
-        camera.aspect = window.innerWidth / window.innerHeight
-        camera.updateProjectionMatrix()
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
 
-        renderer.setSize(window.innerWidth, window.innerHeight)
-      }
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      };
     </script>
   </body>
 </html>

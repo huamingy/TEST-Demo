@@ -1,0 +1,237 @@
+<!-- @format -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>three.js webgl - materials - shaders [lava]</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+    <!-- <link type="text/css" rel="stylesheet" href="main.css" /> -->
+  </head>
+  <body>
+    <div id="container"></div>
+    <div id="info">
+      <a href="https://threejs.org" target="_blank" rel="noopener">three.js</a>
+      - shader material demo. featuring lava shader by
+      <a href="http://irrlicht.sourceforge.net/phpBB2/viewtopic.php?t=21057" target="_blank" rel="noopener">TheGameMaker</a>
+    </div>
+
+    <script id="fragmentShader" type="x-shader/x-fragment">
+
+      attribute vec3 position;
+      attribute vec3 normal;
+      uniform mat3 normalMatrix;
+      uniform mat4 modelViewMatrix;
+      uniform mat4 projectionMatrix;
+      varying vec3 vNormal;
+      varying vec4 vPosition;
+
+      void main() {
+          vNormal = normalize(normalMatrix * normal);
+          vPosition = modelViewMatrix * vec4(position, 1.0);
+          gl_Position = projectionMatrix * vPosition;
+      }
+    </script>
+
+    <script id="vertexShader" type="x-shader/x-vertex">
+
+      varying vec3 vNormal;
+      varying vec4 vPosition;
+      uniform vec3 glowColor;
+      uniform float glowIntensity;
+      uniform float alpha;
+      uniform float sliceY;
+
+      void main() {
+          float intensity = 1.0 - dot(vNormal, vec3(0.0,0.0,1.0));
+          float sliced = (vPosition.y < sliceY) ? 1.0 : alpha; // 剖面处理
+          vec3 glow = glowColor * pow(max(0.0, intensity), glowIntensity) * sliced;
+          gl_FragColor = vec4(glow, sliced);
+      }
+    </script>
+
+    <!-- Import maps polyfill -->
+    <!-- Remove this when import maps will be widely supported -->
+    <script async src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "../build/three.module.js"
+        }
+      }
+    </script>
+
+    <script type="module">
+      import * as THREE from '../build/three.module.js';
+      import {GLTFLoader} from '../three/jsm/loaders/GLTFLoader.js';
+      import {EffectComposer} from '../three/jsm/postprocessing/EffectComposer.js';
+      import {RenderPass} from '../three/jsm/postprocessing/RenderPass.js';
+      import {FilmPass} from '../three/jsm/postprocessing/FilmPass.js';
+      import {BloomPass} from '../three/jsm/postprocessing/BloomPass.js';
+      import {OrbitControls} from '../three/jsm/controls/OrbitControls.js';
+      let camera, renderer, composer, clock, controls;
+
+      let uniforms, mesh;
+
+      init();
+      animate();
+
+      function init() {
+        const container = document.getElementById('container');
+
+        // // 坐标系
+
+        camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 1, 3000);
+        camera.position.set(-15, 40, 5);
+
+        const scene = new THREE.Scene();
+        var axesHelper = new THREE.AxesHelper(300);
+
+        scene.add(axesHelper);
+        clock = new THREE.Clock();
+
+        const textureLoader = new THREE.TextureLoader();
+
+        // uniforms = {
+        //   // fogDensity: { value: 0.01 },
+        //   fogColor: {value: new THREE.Vector3(0, 0, 0)},
+        //   time: {value: 1000},
+        //   uvScale: {value: new THREE.Vector2(3.0, 1.0)},
+        //   texture1: {value: textureLoader.load('../img/cloud.png')},
+        //   texture2: {
+        //     // value: textureLoader.load("textures/carbon/Carbon_Normal.png"),
+        //     value: textureLoader.load('../img/lavatile.jpg'),
+        //   },
+        // };
+
+        uniforms = {
+          glowColor: {value: new THREE.Color(0xff0000)},
+          glowIntensity: {value: 1.0},
+          alpha: {value: 0.5},
+          sliceY: {value: 0.5},
+        };
+        // uniforms['texture1'].value.repeat.x = 8
+        // uniforms['texture1'].value.wrapS = uniforms['texture1'].value.wrapT = THREE.RepeatWrapping;
+
+        // uniforms['texture2'].value.wrapS = uniforms['texture2'].value.wrapT = THREE.RepeatWrapping;
+
+        const size = 0.65;
+
+        const material = new THREE.ShaderMaterial({
+          transparent: true,
+
+          uniforms: uniforms,
+          vertexShader: document.getElementById('vertexShader').textContent,
+          fragmentShader: document.getElementById('fragmentShader').textContent,
+        });
+
+        mesh = new THREE.Mesh(
+          // new THREE.TorusGeometry(size, 0.3, 30, 30),
+          new THREE.BoxGeometry(1, 1, 1),
+          material
+        );
+        mesh.rotation.x = 0.3;
+        scene.add(mesh);
+
+        const pathArr2 = [-10, 0, -10, 10, 0, -10, 10, 0, 10, -10, 0, 10, -10, 0, -10, 10, 0, 5, 20, 0, 5];
+        const radius2 = 0.8;
+        // 动态创建一个管道
+        // function createTube() {
+        let curveArr2 = [];
+        // 三个一组取出curve数据
+        for (let i = 0; i < pathArr2.length; i += 3) {
+          curveArr2.push(new THREE.Vector3(pathArr2[i], pathArr2[i + 1], pathArr2[i + 2]));
+        }
+        var curve2 = new THREE.CatmullRomCurve3(curveArr2);
+        /**
+         * TubeGeometry(path : Curve, tubularSegments : Integer, radius : Float, radialSegments : Integer, closed : Boolean)
+         */
+        var tubeGeometry2 = new THREE.TubeGeometry(curve2, 200, radius2, 40, false);
+
+        var tubeMaterial2 = new THREE.MeshPhongMaterial({
+          color: 0x0022ff,
+        });
+
+        var tube2 = new THREE.Mesh(tubeGeometry2, material);
+        tube2.name = 'tube2';
+        scene.add(tube2);
+        console.log('tube2: ', tube2);
+        tube2.transparent = true;
+        tube2.opacity = 0.8;
+        var loader = new GLTFLoader();
+        loader.load('../models/Pipe_CS/Test.gltf', function (fbx) {
+          fbx.scene.position.set(-400, -400, -800);
+          fbx.scene.scale.set(100, 100, 100);
+          scene.add(fbx.scene);
+
+          fbx.scene.traverse(function (mesh) {
+            if (mesh.type == 'Mesh') {
+              // mesh.material = material
+            }
+          });
+          console.log('fbx: ', fbx);
+        });
+        renderer = new THREE.WebGLRenderer({antialias: true});
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+        renderer.autoClear = false;
+
+        //
+        var ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+
+        controls = new OrbitControls(camera, renderer.domElement);
+        // controls.maxPolarAngle = Math.PI * 0.495;
+        // controls.target.set(0, 10, 0);
+        // controls.minDistance = 40.0;
+        // controls.maxDistance = 200.0;
+        // controls.update();
+
+        const renderModel = new RenderPass(scene, camera);
+        const effectBloom = new BloomPass(0.5);
+        const effectFilm = new FilmPass(0.1, 0.5, 13, false);
+
+        composer = new EffectComposer(renderer);
+
+        composer.addPass(renderModel);
+        composer.addPass(effectBloom);
+        composer.addPass(effectFilm);
+
+        //
+
+        onWindowResize();
+
+        window.addEventListener('resize', onWindowResize);
+      }
+
+      function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        composer.setSize(window.innerWidth, window.innerHeight);
+      }
+
+      //
+
+      function animate() {
+        requestAnimationFrame(animate);
+
+        render();
+      }
+
+      function render() {
+        const delta = 5 * clock.getDelta();
+
+        // uniforms['time'].value += 4 * delta;
+
+        mesh.rotation.y += 0.0125 * delta;
+        mesh.rotation.x += 0.05 * delta;
+
+        renderer.clear();
+        composer.render(0.01);
+      }
+    </script>
+  </body>
+</html>
